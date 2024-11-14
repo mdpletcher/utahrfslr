@@ -18,6 +18,9 @@ precipitation-type work that influenced some of our code.
                               needed to predict SLR from the 
                               random forest.
 
+    calc_needed_vars() - Function to calculate needed
+                         variables for SLR prediction
+
     calc_rf_slr() - Function to calculate SLR using input features
                     from the calc_gridded_agl_vars() as well as 
                     input features from the input gridded dataset.
@@ -171,5 +174,23 @@ def calc_grids(ds, fpath, fsave = False):
         ds.to_netcdf(fpath, engine = 'h5netcdf')
     ds.close()
     del ds
+
+    return ds
+
+def calc_needed_vars(ds):
+
+    # Calculate wind speed
+    ds['spd'] = np.sqrt((ds.u ** 2) + (ds.v ** 2))
+
+    # Broadcast pressure levels
+    p_arr = np.ones(ds.t.shape)
+    p_arr = np.array(
+        [p_arr[i, :, :] * ds.isobaricInhPa[i].values for i in range(ds.isobaricInhPa.size)]
+    ).transpose(0, 1, 2)
+    # Add Dataset attributes to new pressure variable
+    # after broadcasting pressure levels
+    p = ds.t.copy().rename('p') 
+    p.values = p_arr
+    ds['p'] = p_arr
 
     return ds
