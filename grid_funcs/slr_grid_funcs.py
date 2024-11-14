@@ -45,6 +45,10 @@ import netCDF4 as netcdf
 
 from metpy.units import units
 
+# SLR model components
+model = np.load('../models/rf/UUtah_slr_random_forest_modelv1.pkl', allow_pickle = True)
+model_keys = np.load('../models/rf/UUtah_slr_random_forest_modelv1_keys.npy', allow_pickle = True)
+
 
 
 def calc_gridded_agl_vars(ds, agl_levs):
