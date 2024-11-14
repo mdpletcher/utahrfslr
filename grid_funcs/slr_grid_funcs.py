@@ -18,27 +18,12 @@ precipitation-type work that influenced some of our code.
                               needed to predict SLR from the 
                               random forest.
 
-    calc_wbz() - Function to calculate the wet-bulb 0.5 degrees
-                (Celsius) level, which is a proxy for snow level.
-
     calc_rf_slr() - Function to calculate SLR using input features
                     from the calc_gridded_agl_vars() as well as 
                     input features from the input gridded dataset.
 
-    calc_layer_melting_energy() - Function to calculate melting 
-                                  energy in a layer.
-
-    calc_final_layer_melting_energy() - Function that sets layer
-                                        energy to zero if below
-                                        ground. Also accounts for
-                                        terrain if the layer
-                                        contains surface elevation
-
-    calc_total_melting_energy() - Function to calculate the total
-                                  melting energy in a column
-
-    calc_grids() - Function to create 2-d grids from desired 
-                   variable
+    calc_grids() - Function to create 2-d grids from the random
+                   forest SLR
 
     
     
@@ -47,10 +32,20 @@ precipitation-type work that influenced some of our code.
                               
 """
 
+
+
 # Imports
-import pandas as pd
 import numpy as np
-import config
+import pandas as pd
+import xarray as xr
+import netCDF4 as netcdf
+import cfgrib
+import wrf
+import metpy.calc as mpc
+
+from metpy.units import units
+
+
 
 def calc_gridded_agl_vars(ds, agl_levs):
     """
@@ -152,7 +147,7 @@ def calc_rf_slr(
 
     return slr
 
-def calc_grids(ds, fpath):
+def calc_grids(ds, fpath, fsave = False):
     
     # AGL levels to interpolate to
     agl_levs = [300, 600, 900, 1200, 1500, 1800, 2100, 2400]
@@ -167,44 +162,14 @@ def calc_grids(ds, fpath):
         'lon': ds.longitude,
         'elev': ds.orog
     }
-    rf_slr = calc_rf_slr(features, slr_model, slr_model_keys)
 
-    # Reshape grids from 3d to 2d for faster processing
-    gh_2d = ds.gh.to_numpy().reshape(ds.gh.shape[0], -1)
-    t_2d = ds.t.to_numpy().reshape(ds.t.shape[0], -1)
-    p_2d = ds.p.to_numpy().reshape(ds.p.shape[0], -1)
-    rh_2d = ds.r.to_numpy().reshape(ds.r.shape[0], -1)
-    w_2d = ds.w.to_numpy().reshape(ds.w.shape[0], -1)
+    # Add random forest SLR/QSF to Dataset
+    ds['rf_slr'] = calc_rf_slr(features, slr_model, slr_model_keys)
+    ds['rf_qsf'] = ds.rf_slr * ds.rf_qsf
 
-    # Fill DataFrame with variables needed to calculate
-    # SLR for NBM methods. A DataFrame is used here 
-    # because it is a lot faster for processing compared
-    # looping through the Dataset and calculating SLR
-    # for a 2d DataArray.
-    df = pd.DataFrame(
-        {
-            'z_prof': [gh_2d[:, i] for i in range(gh_2d.shape[1])],
-            'temp_prof': [t_2d[:, i] for i in range(t_2d.shape[1])],
-            'pres_prof': [p_2d[:, i] for i in range(p_2d.shape[1])],
-            'rh_prof': [rh_2d[:, i] for i in range(rh_2d.shape[1])],
-            'w_prof': [w_2d[:, i] for i in range(w_2d.shape[1])],
-            'orog': ds.orog.to_numpy().reshape(-1),
-        }
-    )
+    if fsave:
+        ds.to_netcdf(fpath, engine = 'h5netcdf')
+    ds.close()
+    del ds
 
-    # Calculate Cobb SLR at each grid point
-    df_slr['slr_cobb'], df_slr['w_cloudy_profile_mean'], df_slr['w_sq_profile_mean'] = zip(
-        *df_slr.apply(
-            lambda grid_point: slr_funcs.calc_cobb_slr(
-                grid_point.z_prof,
-                grid_point.temp_prof,
-                grid_point.rh_prof,
-                grid_point.w_prof,
-                grid_point.pres_prof,
-                grid_point.orog,
-                grid_point.wbz,
-                grid_point.mlthick
-            ), axis = 1
-        )
-    )
-    
+    return ds
