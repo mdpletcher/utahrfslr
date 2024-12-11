@@ -19,44 +19,90 @@ each SLR method (see https://www.meted.ucar.edu/nwp/NBM40_snow/index.htm)
 # Globals for the Cobb method [see Cobb and Waldstreicher (2005)
 # for more info]
 COBB_TTHRESH = [
-    -24, -21, -19, 
-    -16, -12, -10, 
-    -8, -7, -5, 
-    -3, 0
-] # Temperature thresholds
+    -24, 
+    -21, 
+    -19, 
+    -16, 
+    -12, 
+    -10, 
+    -8, 
+    -7,
+    -5, 
+    -3,
+    0
+] 
+
+# Temperature thresholds
 C1_COBB = [
-    8, 12, 21,
-    30, 19, 9, 
-    8, 9, 13, 
-    6, 2
+    8, 
+    12, 
+    21,
+    30, 
+    19, 
+    9, 
+    8, 
+    9, 
+    13, 
+    6, 
+    2
 ]
 C2_COBB = [
-    -0.0017, 3.5034, 4.9065, 
-    -0.4650, -4.7608, -2.0799, 
-    0.3122, 2.0127, -0.7004, 
-    -3.7110, 0
+    -0.0017, 
+    3.5034, 
+    4.9065, 
+    -0.4650, 
+    -4.7608, 
+    -2.0799, 
+    0.3122, 
+    2.0127, 
+    -0.7004, 
+    -3.7110, 
+    0
 ]
 C3_COBB = [
-    0, 1.1684, -0.4668, 
-    -1.0679, -0.1594, 1.2318, 
-    0.3630, 1.3375, -2.6941, 
-    1.1888, 0
+    0, 
+    1.1684, 
+    -0.4668, 
+    -1.0679, 
+    -0.1594, 
+    1.2318, 
+    0.3630, 
+    1.3375, 
+    -2.6941, 
+    1.1888, 
+    0
 ]
 C4_COBB = [
-    0.1298, -0.2725, -0.0573, 
-    0.0865, 0.1855, -0.1931, 
-    0.3249, -0.6719, 0.6472, 
-    -0.1321, 0
+    0.1298, 
+    -0.2725, 
+    -0.0573, 
+    0.0865, 
+    0.1855, 
+    -0.1931, 
+    0.3249, 
+    -0.6719, 
+    0.6472, 
+    -0.1321, 
+    0
 ]
 # List of each Cobb coefficient
-COEFS_COBB = [C1_COBB, C2_COBB, C3_COBB, C4_COBB]
+COEFS_COBB = [
+    C1_COBB, 
+    C2_COBB, 
+    C3_COBB, 
+    C4_COBB
+]
 
 
 
 # Globals for MaxTAloft 
 COEFS_MAXT = [
-    0.0000045, 0.0004432, 0.0130903,
-    0.0585968, 1.8150809, 5.9805722
+    0.0000045, 
+    0.0004432, 
+    0.0130903,
+    0.0585968, 
+    1.8150809, 
+    5.9805722
 ]
 
 
@@ -64,18 +110,35 @@ COEFS_MAXT = [
 # Globals for Roebber ANN method
 # Sigma levels
 SIGMA_LEVS = [
-    1.0, 0.975, 0.95, 
-    0.925, 0.9, 0.875, 
-    0.85, 0.8, 0.75, 
-    0.7, 0.65, 0.6, 
-    0.5, 0.4
+    1.0, 
+    0.975, 
+    0.95, 
+    0.925, 
+    0.9, 
+    0.875, 
+    0.85, 
+    0.8, 
+    0.75, 
+    0.7, 
+    0.65, 
+    0.6, 
+    0.5, 
+    0.4
 ]
 # Monthly indexes
 MONTH_IDXS = [
-    1.0, 0.67, 0.33,
-    0.0, -0.33, -0.67, 
-    -1.00, -0.67, -0.33, 
-    0.0, 0.33, 0.67
+    1.0, 
+    0.67, 
+    0.33,
+    0.0, 
+    -0.33, 
+    -0.67, 
+    -1.00, 
+    -0.67, 
+    -0.33, 
+    0.0, 
+    0.33, 
+    0.67
 ]
 # Neural network coefficents
 # First coefficient list
@@ -158,8 +221,12 @@ C6_ROEBBER = [
 ]
 # List of each Roebber coefficent
 ROEBBER_COEFS = [
-    C1_ROEBBER, C2_ROEBBER, C3_ROEBBER, 
-    C4_ROEBBER, C5_ROEBBER, C6_ROEBBER
+    C1_ROEBBER, 
+    C2_ROEBBER, 
+    C3_ROEBBER, 
+    C4_ROEBBER, 
+    C5_ROEBBER, 
+    C6_ROEBBER
 ]
 
 
