@@ -11,17 +11,17 @@ team for providing Fortran code for the Roebber method.
 10-member artficial neural network used to calculate SLR.
 
 ########### Function List ###########
-    Breadboard1() - Member 1 of the 10-member ANN ensemble [multilayer perceptron (MLP)
+    Member1() - Member 1 of the 10-member ANN ensemble [multilayer perceptron (MLP)
     with a single hidden layer]
-    Breadboard2() - Member 2 of the 10-member ANN ensemble (MLP with a single hidden layer)
-    Breadboard3() - Member 3 of the 10-member ANN ensemble (MLP with a single hidden layer)
-    Breadboard4() - Member 4 of the 10-member ANN ensemble (MLP with a single hidden layer)
-    Breadboard5() - Member 5 of the 10-member ANN ensemble (MLP with a single hidden layer)
-    Breadboard6() - Member 6 of the 10-member ANN ensemble (MLP with two hidden layers)
-    Breadboard7() - Member 7 of the 10-member ANN ensemble (MLP with two hidden layers)
-    Breadboard8() - Member 8 of the 10-member ANN ensemble (MLP with two hidden layers)
-    Breadboard9() - Member 9 of the 10-member ANN ensemble (MLP with two hidden layers)
-    Breadboard10() - Member 10 of the 10-member ANN ensemble (MLP with two hidden layers)
+    Member2() - Member 2 of the 10-member ANN ensemble (MLP with a single hidden layer)
+    Member3() - Member 3 of the 10-member ANN ensemble (MLP with a single hidden layer)
+    Member4() - Member 4 of the 10-member ANN ensemble (MLP with a single hidden layer)
+    Member5() - Member 5 of the 10-member ANN ensemble (MLP with a single hidden layer)
+    Member6() - Member 6 of the 10-member ANN ensemble (MLP with two hidden layers)
+    Member7() - Member 7 of the 10-member ANN ensemble (MLP with two hidden layers)
+    Member8() - Member 8 of the 10-member ANN ensemble (MLP with two hidden layers)
+    Member9() - Member 9 of the 10-member ANN ensemble (MLP with two hidden layers)
+    Member10() - Member 10 of the 10-member ANN ensemble (MLP with two hidden layers)
 
 
 
@@ -30,16 +30,16 @@ team for providing Fortran code for the Roebber method.
 
 
 
-def Breadboard1():
+def Member1():
 
     inputFile = np.array([
         1.077844262123108E+00, -1.778443008661270E-01, 
         2.295625507831573E-01, 6.163756549358368E-02,
-         2.081887423992157E-01, 6.210270524024963E-01, 
-         3.646677434444427E-01, 1.214343756437302E-01, 
-         2.430133521556854E-01, 3.004860281944275E-01, 
-         1.935067623853683E-01,4.185551702976227E-01, 
-         1.962280571460724E-01, -4.804643988609314E-01
+        2.081887423992157E-01, 6.210270524024963E-01, 
+        3.646677434444427E-01, 1.214343756437302E-01, 
+        2.430133521556854E-01, 3.004860281944275E-01, 
+        1.935067623853683E-01, 4.185551702976227E-01, 
+        1.962280571460724E-01, -4.804643988609314E-01
     ]).reshape((7,2)).T
 
     hidden1Axon = np.array([
@@ -163,7 +163,7 @@ def Breadboard1():
 
     return inputFile, hidden1Axon, hidden1Synapse, outputSynapse
 
-def Breadboard2():
+def Member2():
 
     inputFile = np.array([
         1.077844262123108E+00, -1.778443008661270E-01,
@@ -296,7 +296,7 @@ def Breadboard2():
 
     return inputFile, hidden1Axon, hidden1Synapse, outputSynapse
 
-def Breadboard3():
+def Member3():
 
     inputFile = np.array([
         1.077844262123108E+00, -1.778443008661270E-01,
@@ -429,7 +429,7 @@ def Breadboard3():
 
     return inputFile, hidden1Axon, hidden1Synapse, outputSynapse
 
-def Breadboard4():
+def Member4():
 
     inputFile = np.array([
         1.077844262123108E+00, -1.778443008661270E-01,
@@ -562,7 +562,7 @@ def Breadboard4():
 
     return inputFile, hidden1Axon, hidden1Synapse, outputSynapse
 
-def Breadboard5():
+def Member5():
 
     inputFile = np.array([
         1.077844262123108E+00, -1.778443008661270E-01,
@@ -695,7 +695,7 @@ def Breadboard5():
 
     return inputFile, hidden1Axon, hidden1Synapse, outputSynapse
 
-def Breadboard6():
+def Member6():
 
     inputFile = np.array([
         1.353383421897888E+00, -4.533834457397461E-01,
@@ -750,7 +750,7 @@ def Breadboard6():
 
     return inputFile, hidden1Axon, hidden2Axon, hidden1Synapse, hidden2Synapse, outputSynapse
 
-def Breadboard7():
+def Member7():
 
     inputFile = np.array([
         1.077844262123108E+00, -1.778443008661270E-01,
@@ -805,7 +805,7 @@ def Breadboard7():
 
     return inputFile, hidden1Axon, hidden2Axon, hidden1Synapse, hidden2Synapse, outputSynapse
 
-def Breadboard8():
+def Member8():
 
     inputFile = np.array([
         1.353383421897888E+00, -4.533834457397461E-01,
@@ -860,7 +860,7 @@ def Breadboard8():
 
     return inputFile, hidden1Axon, hidden2Axon, hidden1Synapse, hidden2Synapse, outputSynapse
 
-def Breadboard9():
+def Member9():
 
     inputFile = np.array([
         1.077844262123108E+00, -1.778443008661270E-01,
@@ -915,7 +915,7 @@ def Breadboard9():
 
     return inputFile, hidden1Axon, hidden2Axon, hidden1Synapse, hidden2Synapse, outputSynapse
 
-def Breadboard10():
+def Member10():
 
     inputFile = np.array([
         1.077844262123108E+00, -1.778443008661270E-01,

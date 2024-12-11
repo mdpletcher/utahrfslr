@@ -22,10 +22,13 @@ If access is available, The COMET Program also contains more info on
 each SLR method (see https://www.meted.ucar.edu/nwp/NBM40_snow/index.htm).
 
 ########### Function List ###########
-    calc_layer_slr() - 
-    calc_layer_vars() - 
-    calc_cobb_slr() - 
-    calc_maxtaloft_slr() - 
+    calc_layer_slr() - Calculate layer snow ratio from layer temperature
+    for calc_layer_vars()
+    calc_layer_vars() - Calculate layer variables for calc_cobb_slr()
+    calc_cobb_slr() - Calculate Cobb SLR at single point and the average 
+    vertical velocity and weighting factors in the profile
+    calc_maxtaloft_slr() - Calculate snow-to-liquid ratio by finding maximum 
+    temperature between 2000 ft AGL (609.6 m AGL) and 400 hPa
     calc_thickness_slr() - 
     calc_roebber_components() -
     mlp_1_hidden_layer() - 
@@ -42,13 +45,26 @@ each SLR method (see https://www.meted.ucar.edu/nwp/NBM40_snow/index.htm).
 import pandas as pd
 import numpy as np
 import nbm_config
-import roebber_breadboards
+import roebber_ens_members
 
 from math import isnan
 from glob import glob
 from datetime import datetime
 
-
+# Create global for weights and biases from each
+# member of the 10-member ANN ensemble
+MEMBERS = [
+    roebber_ens_members.Member1,
+    roebber_ens_members.Member2,
+    roebber_ens_members.Member3,
+    roebber_ens_members.Member4,
+    roebber_ens_members.Member5,
+    roebber_ens_members.Member6,
+    roebber_ens_members.Member7,
+    roebber_ens_members.Member8,
+    roebber_ens_members.Member9,
+    roebber_ens_members.Member10
+]
 
 ### Cobb Functions ###
 def calc_layer_slr(temp):
@@ -64,14 +80,14 @@ def calc_layer_slr(temp):
         layer SLR based on input temperature
 
     """
-    if temp < config.COBB_TTHRESH[0]:
-        return config.C1_COBB[0]
-    elif temp >= config.COBB_TTHRESH[-1]:
+    if temp < nbm_config.COBB_TTHRESH[0]:
+        return nbm_config.C1_COBB[0]
+    elif temp >= nbm_config.COBB_TTHRESH[-1]:
         return 0 if temp > 3 else np.nan
-    for i in range(len(config.COBB_TTHRESH) - 1):
-        if config.COBB_TTHRESH[i] <= temp < config.COBB_TTHRESH[i + 1]:
-            tdiff = temp - config.COBB_TTHRESH[i]
-            return config.C1_COBB[i] + config.C2_COBB[i] * tdiff + config.C3_COBB[i] * tdiff**2 + config.C4_COBB[i] * tdiff**3
+    for i in range(len(nbm_config.COBB_TTHRESH) - 1):
+        if nbm_config.COBB_TTHRESH[i] <= temp < nbm_config.COBB_TTHRESH[i + 1]:
+            tdiff = temp - nbm_config.COBB_TTHRESH[i]
+            return nbm_config.C1_COBB[i] + nbm_config.C2_COBB[i] * tdiff + nbm_config.C3_COBB[i] * tdiff**2 + nbm_config.C4_COBB[i] * tdiff**3
         
 # Calculate layer weighting factors for Cobb method
 def calc_layer_vars(
@@ -240,8 +256,11 @@ def calc_maxtaloft_slr(
         Input pressure profile array (mb or hPa)
     elev : float
         Surface elevation (meter)
-    """
 
+    Returns:
+    tuple of float
+        Floats of MaxTAloft SLR, maximum temperature between 2000 ft AGL and 400 hPa  
+    """
     # Convert to arrays for processing
     gh_prof, pres_prof, temp_prof = np.array(gh_prof), np.array(pres_prof), np.array(temp_prof)
 
@@ -268,12 +287,12 @@ def calc_maxtaloft_slr(
         slr = np.nan
     else:
         slr = (
-            config.COEFS_MAXT[0] * (MaxT**5) + 
-            config.COEFS_MAXT[1] * (MaxT**4) + 
-            config.COEFS_MAXT[2] * (MaxT**3) +
-            config.COEFS_MAXT[3] * (MaxT**2) - 
-            config.COEFS_MAXT[4] * MaxT + 
-            config.COEFS_MAXT[5] # From NBM v4.1 Fortran code
+            nbm_config.COEFS_MAXT[0] * (MaxT**5) + 
+            nbm_config.COEFS_MAXT[1] * (MaxT**4) + 
+            nbm_config.COEFS_MAXT[2] * (MaxT**3) +
+            nbm_config.COEFS_MAXT[3] * (MaxT**2) - 
+            nbm_config.COEFS_MAXT[4] * MaxT + 
+            nbm_config.COEFS_MAXT[5] # From NBM v4.1 Fortran code
         )
     
     # Remove spurious SLRs
@@ -290,13 +309,23 @@ def calc_thickness_slr(
     pres_prof,
     elev,
 ):
-    '''
-    :param: gh_prof: atmospheric geopotential height profile, meter
-    :param pres_prof: atmospheric geopotential height profile, meter
-    :param elev: surface elevation, meter
-
-    '''
+    """
+    Calculate snow-to-liquid ratio by finding the 850 - 700 mb thickness See more on the
+    850-700 mb Thickness method from the COMET Program's NBM v4.0 SLR Methods module 
+    (https://www.meted.ucar.edu/nwp/NBM40_snow/navmenu.php?tab=1&page=2-3-0&type=flash).
     
+    Parameters:
+    gh_prof : np.array
+        Input geopotential height profile array (meter)
+    pres_prof : np.array
+        Input pressure profile array (mb or hPa)
+    elev : float
+        Surface elevation (meter)
+
+    Returns:
+    float
+        850-700 mb Thickness SLR
+    """
     # Ensure profile is above ground
     gh_prof = np.where(gh_prof > elev, gh_prof, np.nan)
     
@@ -321,20 +350,49 @@ def calc_thickness_slr(
 # for more info).
 # Compute each component 
 def calc_roebber_components(
-        coefs, 
-        qpf, 
-        spd10m, 
-        temp, 
-        rh, 
-        i
+    coefs, 
+    qpf, 
+    spd10m, 
+    temp_sigma, 
+    rh_sigma, 
 ):
-    return (
+     """
+    Computes each of the six principal components used in calc_roebber_slr()
+
+    
+    Parameters:
+    coefs : list
+        List of 29 Roebber ANN coefficients
+    qpf : float
+        Input model QPF (mm)
+    spd10m : np.array
+        10-meter wind speed (m/s)
+    temp_sigma : np.array
+        Temperature profile interpolated to the 14 sigma levels (Celsius)
+    rh_sigma
+        Relative humidity profile interpolated to the 14 sigma levels (%)
+
+    Returns:
+    float
+        Computed principal component value
+    """
+    # Base components from coefficients
+    base_component = (
         coefs[0] + 
         coefs[1] * qpf[i] + 
-        coefs[2] * spd10m[i] + 
-        sum(coefs[j + 3] * temp[j] for j in range(14)) + 
-        sum(coefs[j + 17] * rh[j] for j in range(13))
+        coefs[2] * spd10m[i]
     )
+    
+    # Temperature contributions (14 coefficients)
+    temp_contributions = sum(coefs[j + 3] * temp[j] for j in range(14))
+    
+    # Relative humidity contributions (13 coefficients)
+    rh_contributions = sum(coefs[j + 17] * rh[j] for j in range(13))
+
+    # Sum up all contributions
+    principal_component = base_component + temp_contributions + rh_contributions
+
+    return principal_component
 
 # Artificial neural network (ANN) that computes probabilities for each
 # snow class (light, moderate, heavy) for the first 5 members in 
@@ -451,20 +509,7 @@ def mlp_2_hidden_layers(
 
     return p1, p2, p3
 
-# Create global from two the two ANNs
 ANN_FUNCS = [mlp_1_hidden_layer] * 5 + [mlp_2_hidden_layers] * 5
-BREADBOARDS = [
-    roebber_breadboards.Breadboard1,
-    roebber_breadboards.Breadboard2,
-    roebber_breadboards.Breadboard3,
-    roebber_breadboards.Breadboard4,
-    roebber_breadboards.Breadboard5,
-    roebber_breadboards.Breadboard6,
-    roebber_breadboards.Breadboard7,
-    roebber_breadboards.Breadboard8,
-    roebber_breadboards.Breadboard9,
-    roebber_breadboards.Breadboard10
-]
 
 def calc_roebber_slr(
     pres_prof, 
@@ -485,12 +530,13 @@ def calc_roebber_slr(
     methodology. The original code was written in C++ but was converted to Fortran by NOAA EMC's
     UPP group and adapted to calculate an explicit SLR which the original Roebber et al. (2003)
     method did not do. Thus, users should be cautious when interpreting results from this algorithm.
+    See Fig. 3 in Roebber et al. (2003) for confirmation on units for each variable.
 
     Parameters:
         pres_prof : np.array
             Input pressure profile (Pa)
         temp_prof : np.array
-            Input temperature profile (K)
+            Input temperature profile (Celsius)
         rh_prof : np.array
             Input relative humidity profile (%)
         gh_prof : np.array
@@ -500,11 +546,11 @@ def calc_roebber_slr(
         psfc : float, np.array
             Input surface pressure (Pa)
         qpf : float, np.array
-            Input QPF (inch)
+            Input QPF (mm)
         spd10m : float, np.array
             Input 10-meter wind speed (m/s)
         t2m : float, np.array
-            Input 2-meter temperature (K)
+            Input 2-meter temperature (Celsius)
         r2m : float, np.array
             Input 2-meter relative humidity (%)
         ob_collect_time : datetime
@@ -524,87 +570,46 @@ def calc_roebber_slr(
     
     # Empty arrays for temperature and humidity data interpolated to 
     # 14 sigma levels
-    rhms = np.zeros(14)
-    tms = np.zeros(14)
+    rhms, tms = np.zeros(14), np.zeros(14)
 
     # Pressure pertubation calculation
     prp = mslp / psfc
     prp = prp * 100000 / psfc
 
-    # Use profiles above ground
-    #temp_agl = np.where(pres_prof <= )
-
-    # SLRS
-    slrs = []
-
-    # Empty arrays for temperature and humidity data interpolated to 
-    # 14 sigma levels from Roebber et al. (2003)
-    rhms = np.zeros(14)
-    tms  = np.zeros(14)
-
-    # Pressure pertubation calculation
-    prp = mslp / psfc  # 
-    prp = prp * 100000 / psfc #  
-    p = prp
-
     # Use levels above ground
-    t_agl = np.where(gh_prof > elev, temp_prof, np.nan)
-    rh_agl = np.where(gh_prof > elev, rh_prof, np.nan)
-    sigma_agl = np.where(gh_prof > elev, sigma_levels, np.nan)
-    display(sigma_agl)
+    above_sfc = gh_prof > elev
+    t_agl = np.where(above_sfc, temp_prof, np.nan)
+    rh_agl = np.where(above_sfc, rh_prof, np.nan)
+    sigma_agl = np.where(above_sfc, sigma_levels, np.nan)
 
-    below_mask = ~np.isnan(t_agl)
+    # Remove NaNs which are values below ground
+    remove_below_vals = ~np.isnan(t_agl)
+    t_agl = t_agl[remove_below_vals]
+    rh_agl = rh_agl[remove_below_vals]
+    sigma_agl = sigma_agl[remove_below_vals]
 
-    t_agl     = t_agl[below_mask]
-    rh_agl    = rh_agl[below_mask]
-    sigma_agl = sigma_agl[below_mask]
-
-    t_agl[0]     = t2m
-    rh_agl[0]    = r2m
-    sigma_agl[0] = 1
-    
+    # Set 2-meter values as first level
+    t_agl[0], rh_agl[0], sigma_agl[0] = t2m, r2m, 1
+  
     # Loop through each sigma level        
-    for ks in range(len(SIGMA_LEVS)):
-
-        # Surface pressure
-        # psfc is surface pressure
-        # pres, psurf are surface mean sea level pressure
-
-        # Sigma level in loop
-        sgw = SIGMA_LEVS[ks]
-
+    for ks, sgw in enumerate(SIGMA_LEVS):
         # Loop through each level in each HRRR vertical profile above ground
-        for j in range(t_agl.shape[0] - 1):
-            if j == 0:
-                sg1 = 1
-            else:
-                sg1 = sigma_agl[j]
-            # Above sigma level
-            sg2 = sigma_agl[j + 1]
+        for j in range(len(t_agl) - 1):
+            sg1, sg2 = sigma_agl[j], sigma_agl[j + 1]
             if sg1 == sgw:
-                tms[ks]  = t_agl[j] # current sigma level temperature
-                rhms[ks] = rh_agl[j] # current sigma level RH
+                tms[ks], rhms[ks] = t_agl[j], rh_agl[j]
             elif sg2 == sgw:
-                tms[ks]  = t_agl[j + 1] # Above sigma level temperature
-                rhms[ks] = rh_agl[j + 1] # Above sigma level RH
+                tms[ks], rhms[ks] = t_agl[j + 1], rh_agl[j + 1]
+            # Interpolate between levels
             elif sgw < sg1 and sgw > sg2:
-                # Difference in temperature between layers in profile loop and
-                # temperature at each sigma level (14 sigma levels)
-                dtds = (t_agl[j + 1] - t_agl[j]) / (sg2 - sg1)
-                tms[ks] = ((sgw - sg1) * dtds) + t_agl[j]
-                # Finds difference in RH between layers in profile loop and
-                # RH at each sigma level (14 sigma levels)
-                rhds = (rh_agl[j + 1] - rh_agl[j]) / (sg2 - sg1)
-                rhms[ks] = ((sgw - sg1) * rhds) + rh_agl[j]
-
+                dist = (sgw - sg1) / (sg2 - sg1)
+                tms[ks] = t_agl[j] + dist * (t_agl[j + 1] - t_agl[j])
+                rhms[ks] = rh_agl[j] + dist * (rh_agl[j + 1] - rh_agl[j])
     # Set first sigma level value to 2-meter temperature/RH
-    tms[0]  = t2m
-    rhms[0] = r2m
+    tms[0], rhms[0] = t2m, r2m
 
-    f = []
-    # Compute all 6 components
-    for c in ROEBBER_COEFS:
-        f.append(calc_roebber_components(c, qpf, spd10m, tms, rhms))
+    # Compute all 6 principal components
+    components = [calc_roebber_components(c, qpf, spd10m, tms, rhms) for c in ROEBBER_COEFS]
     
     ob_collect_time = datetime.datetime.strptime(str(ob_collect_time), '%Y-%m-%d %H:%M:%S+00:00')
     if ob_collect_time.strftime("%m") == '01':
@@ -616,23 +621,12 @@ def calc_roebber_slr(
     else:
         month_idx = MONTH_IDXS[11]
 
-    hprob_tot = 0
-    mprob_tot = 0
-    lprob_tot = 0
+    hprob_tot, mprob_tot, lprob_tot = 0, 0, 0
 
-    # Loop through each neural network 
-    for k in range(10):
-        breadboard = BREADBOARDS[k]()
-        if k < 5:
-            probs = ANN_FUNCS[k](
-                breadboard[0], breadboard[1], breadboard[2], breadboard[3],
-                month_idx, f[0], f[1], f[2], f[3], f[4], f[5]
-            )
-        else:
-            probs = ANN_FUNCS[k](
-        breadboard[0], breadboard[1], breadboard[2], breadboard[3],
-        breadboard[4], breadboard[5], month_idx, f[0], f[1], f[2], f[3], f[4], f[5]
-            )
+    # Loop through each ANN member in the 10-member ensemble
+    # and calculate member snow classes probabilities
+    for k, member in enumerate(MEMBERS):
+        probs = ANN_FUNCS[k](*member(), month_idx, *components)
 
         # Total probabilities for each snowfall class (heavy, medium, light)
         hprob_tot += probs[0]
@@ -640,15 +634,13 @@ def calc_roebber_slr(
         lprob_tot += probs[2]
 
     # Convert probabilites to fractions
-    hprob = hprob_tot / 10
-    mprob = mprob_tot / 10
-    lprob = lprob_tot / 10
+    hfrac, mfrac, lfrac = hprob_tot / 10, mprob_tot / 10, lprob_tot / 10
 
     # Multiplication factor for light snow class
-    lprob_factor = 18 if lprob < 0.67 else 27
+    lfrac_factor = 18 if lfrac < 0.67 else 27
 
     # Convert probabilities to explicit SLR
-    slr = (hprob * 8 + mprob * 13 + lprob * lprob_factor) * p / (hprob + mprob + lprob)
+    slr = (hfrac * 8 + mfrac * 13 + lfrac * lfrac_factor) * prp / (hfrac + mfrac + lfrac)
 
     return slr
 
