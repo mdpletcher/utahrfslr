@@ -1,7 +1,7 @@
 """
 Michael Pletcher, Jim Steenburgh
 Created: 10/07/2024
-Edited: 12/10/2024
+Edited: 12/11/2024
 
 Acknowledgments: The author thanks Robert James of the Meteorological
 Development Lab (MDL) for providing Fortran code for the Cobb, MaxTAloft,
@@ -22,20 +22,22 @@ If access is available, The COMET Program also contains more info on
 each SLR method (see https://www.meted.ucar.edu/nwp/NBM40_snow/index.htm).
 
 ########### Function List ###########
-    calc_layer_slr() - Calculate layer snow ratio from layer temperature
-    for calc_layer_vars()
+    calc_layer_slr() - Calculate layer snow ratio from layer temperature for calc_layer_vars()
     calc_layer_vars() - Calculate layer variables for calc_cobb_slr()
     calc_cobb_slr() - Calculate Cobb SLR at single point and the average 
     vertical velocity and weighting factors in the profile
     calc_maxtaloft_slr() - Calculate snow-to-liquid ratio by finding maximum 
     temperature between 2000 ft AGL (609.6 m AGL) and 400 hPa
-    calc_thickness_slr() - 
-    calc_roebber_components() -
-    mlp_1_hidden_layer() - 
-    mlp_2_hidden_layers() - 
-    calc_roebber_slr() - 
-    adjust_nbm_slr() - 
-
+    calc_thickness_slr() - Calculate snow-to-liquid ratio by determining
+    850 - 700 mb thickness
+    calc_roebber_components() - Calculate the six PCs needed to calculate
+    snow-to-liquid ratio in calc_roebber_slr()
+    mlp_1_hidden_layer() - Neural network with a single hidden layer
+    mlp_2_hidden_layers() - Neural network with two hidden layers
+    calc_roebber_slr() - Use calc_roebber_components(), mlp_1_hidden_layer(), and mlp_2_hidden_layers()
+    to calculate snow-to-liquid ratio
+    adjust_nbm_slr() - Adjust NBM SLRs based on new NBM v4.2 surface melting scheme developed
+    by Daniel Cobb
 
 
 
@@ -65,6 +67,8 @@ MEMBERS = [
     roebber_ens_members.Member9,
     roebber_ens_members.Member10
 ]
+
+
 
 ### Cobb Functions ###
 def calc_layer_slr(temp):
@@ -335,7 +339,7 @@ def calc_thickness_slr(
     thck_850_700 = z_700 - z_850
 
     # Calculate SLR using equation from NBM v4.2 Fortran code
-    slr = np.nan if thck_850_700 == np.nan else -(0.16559 * thck_850_700) + 263.35
+    slr = np.nan if thck_850_700 == np.nan else -(nbm_config.THICK_COEFS[0] * thck_850_700) + nbm_config.THICK_COEFS[1]
     slr = np.nan if slr < 0 else slr
         
     return slr
@@ -356,7 +360,7 @@ def calc_roebber_components(
     temp_sigma, 
     rh_sigma, 
 ):
-     """
+    """
     Computes each of the six principal components used in calc_roebber_slr()
 
     
@@ -377,19 +381,9 @@ def calc_roebber_components(
         Computed principal component value
     """
     # Base components from coefficients
-    base_component = (
-        coefs[0] + 
-        coefs[1] * qpf[i] + 
-        coefs[2] * spd10m[i]
-    )
-    
-    # Temperature contributions (14 coefficients)
-    temp_contributions = sum(coefs[j + 3] * temp[j] for j in range(14))
-    
-    # Relative humidity contributions (13 coefficients)
-    rh_contributions = sum(coefs[j + 17] * rh[j] for j in range(13))
-
-    # Sum up all contributions
+    base_component = (coefs[0] + coefs[1] * qpf[i] + coefs[2] * spd10m[i])
+    temp_contributions = sum(coefs[j + 3] * temp[j] for j in range(14)) # Temperature contributions (14 coefficients)
+    rh_contributions = sum(coefs[j + 17] * rh[j] for j in range(13))  # Relative humidity contributions (13 coefficients)
     principal_component = base_component + temp_contributions + rh_contributions
 
     return principal_component
@@ -403,7 +397,7 @@ def mlp_1_hidden_layer(
     hidden1Axon, 
     hidden1Synapse, 
     outputSynapse, 
-    month_index, 
+    month_idx, 
     f1, 
     f2, 
     f3, 
@@ -411,13 +405,37 @@ def mlp_1_hidden_layer(
     f5, 
     f6
 ):
+    """
+    Computes probabilities for each snow class using the weights 
+    and biases from the first 5 ensemble members in the 10-member
+    ensemble as well as the required inputs.
 
+    Parameters:
+    inputFile: : 2d np.array
+        Weights and biases for the 7 inputs
+    hidden1Axon : 1d np.array
+        Biases for each of the 40 neurons in the hidden layer
+    hidden1Synapse : 2d np.array
+        Weights connecting 7 inputs to the 40 neurons in the first
+        hidden layer
+    outputSynapse : 2d np.array
+        Weights connecting the 40 neurons in the hidden layer
+        to the three snowfall classes (light, moderate, heavy)
+    month_idx : float
+        Weighting value based on month
+    f1, f2, f3, f4, f5, f6 : float
+        6 input principal components calculated in calc_roebber_components()
+
+    Returns:
+    tuple of float
+        Floats of each snow class probability
+    """
     # Define empty arrays for network
     inputAxon = np.zeros(7)
     fgrid1 = np.zeros(40)
     fgrid2 = np.zeros(3)
     outputAxon = np.zeros(3)
-    f = [month_index, f1, f2, f3, f4, f5, f6]
+    f = [month_idx, f1, f2, f3, f4, f5, f6]
 
     # Calculate input axons based on calculated factors (f[k])
     for j in range(7):
@@ -457,7 +475,7 @@ def mlp_2_hidden_layers(
     hidden1Synapse, 
     hidden2Synapse, 
     outputSynapse, 
-    month_index, 
+    month_idx, 
     f1, 
     f2, 
     f3, 
@@ -465,14 +483,43 @@ def mlp_2_hidden_layers(
     f5, 
     f6
 ):
+ """
+    Computes probabilities for each snow class using the weights 
+    and biases from the first 5 ensemble members in the 10-member
+    ensemble as well as the required inputs.
 
+    Parameters:
+    inputFile: : 2d np.array
+        Weights and biases for the 7 inputs
+    hidden1Axon : 1d np.array
+        Biases for each of the 7 neurons in the first hidden layer
+    hidden2Axon : 1d np.array
+        Biases for each of the 4 neurons in the second hidden layer
+    hidden1Synapse : 2d np.array
+        Weights connecting the 7 inputs to the 7 neurons in the first
+        hidden layer
+    hidden2Synapse : 2d np.array
+        Weights connecting the 7 neurons in the first hidden layer
+        to the 4 neurons in the second hidden layer 
+    outputSynapse : 2d np.array
+        Weights connecting the 4 neurons in the second hidden layer
+        to the three snowfall classes (light, moderate, heavy)
+    month_idx : float
+        Weighting value based on month
+    f1, f2, f3, f4, f5, f6 : float
+        6 input principal components calculated in calc_roebber_components()
+
+    Returns:
+    tuple of float
+        Floats of each snow class probability
+    """
     # Define empty arrays for network
     inputAxon = np.zeros(7)
     fgrid1 = np.zeros(7)
     fgrid2 = np.zeros(4)
     fgrid3 = np.zeros(3)
     outputAxon = np.zeros(3)
-    f = [month_index, f1, f2, f3, f4, f5, f6]
+    f = [month_idx, f1, f2, f3, f4, f5, f6]
 
     # --- Start of neural network --- 
     # Calculate input axons based on calculated factors (f[k])
@@ -482,7 +529,7 @@ def mlp_2_hidden_layers(
     # Calculate operation results of layers 1 and 2
     for k in range(7):
         for l in range(7):
-            fgrid1[k] += hidden1Synapse[l, k]*inputAxon[l]
+            fgrid1[k] += hidden1Synapse[l, k] * inputAxon[l]
         fgrid1[k] += hidden1Axon[k]
         fgrid1[k] = (np.exp(fgrid1[k]) - np.exp(-fgrid1[k])) / (np.exp(fgrid1[k]) + np.exp(-fgrid1[k]))
 
@@ -529,7 +576,9 @@ def calc_roebber_slr(
     Calculate snow-to-liquid ratio at a grid point using the Roebber et al. (2003)
     methodology. The original code was written in C++ but was converted to Fortran by NOAA EMC's
     UPP group and adapted to calculate an explicit SLR which the original Roebber et al. (2003)
-    method did not do. Thus, users should be cautious when interpreting results from this algorithm.
+    method did not do. This code was then converted to Python from Fortran using the UPP's UPP_PHYSICS.f
+    code on Github (https://github.com/NOAA-EMC/UPP/blob/develop/sorc/ncep_post.fd/UPP_PHYSICS.f).
+    Thus, users should be cautious when interpreting results from this algorithm.
     See Fig. 3 in Roebber et al. (2003) for confirmation on units for each variable.
 
     Parameters:
@@ -592,7 +641,7 @@ def calc_roebber_slr(
     t_agl[0], rh_agl[0], sigma_agl[0] = t2m, r2m, 1
   
     # Loop through each sigma level        
-    for ks, sgw in enumerate(SIGMA_LEVS):
+    for ks, sgw in enumerate(nbm_config.SIGMA_LEVS):
         # Loop through each level in each HRRR vertical profile above ground
         for j in range(len(t_agl) - 1):
             sg1, sg2 = sigma_agl[j], sigma_agl[j + 1]
@@ -605,21 +654,22 @@ def calc_roebber_slr(
                 dist = (sgw - sg1) / (sg2 - sg1)
                 tms[ks] = t_agl[j] + dist * (t_agl[j + 1] - t_agl[j])
                 rhms[ks] = rh_agl[j] + dist * (rh_agl[j + 1] - rh_agl[j])
+
     # Set first sigma level value to 2-meter temperature/RH
     tms[0], rhms[0] = t2m, r2m
 
     # Compute all 6 principal components
-    components = [calc_roebber_components(c, qpf, spd10m, tms, rhms) for c in ROEBBER_COEFS]
+    components = [calc_roebber_components(c, qpf, spd10m, tms, rhms) for c in nbm_config.ROEBBER_COEFS]
     
     ob_collect_time = datetime.datetime.strptime(str(ob_collect_time), '%Y-%m-%d %H:%M:%S+00:00')
     if ob_collect_time.strftime("%m") == '01':
-        month_idx = MONTH_IDXS[0]
+        month_idx = nbm_config.MONTH_IDXS[0]
     elif ob_collect_time.strftime("%m") == '03':
-        month_idx = MONTH_IDXS[10]
+        month_idx = nbm_config.MONTH_IDXS[10]
     elif ob_collect_time.strftime("%m") == '04':
-        month_idx = MONTH_IDXS[9]
+        month_idx = nbm_config.MONTH_IDXS[9]
     else:
-        month_idx = MONTH_IDXS[11]
+        month_idx = nbm_config.MONTH_IDXS[11]
 
     hprob_tot, mprob_tot, lprob_tot = 0, 0, 0
 
