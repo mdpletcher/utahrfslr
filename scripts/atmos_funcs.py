@@ -81,10 +81,10 @@ def calc_layer_melting_energy(z_up, z_dn, tw_up, tw_dn):
         G * ((zero_cross_height - z_dn) * (((TMELT + tw_dn) / 2) - TMELT) / TMELT), 
         layer_energy
     )
-    layerenergy = np.where(
+    layer_energy = np.where(
         ((tw_up - TMELT) * (tw_dn - TMELT) < 0) & (tw_up > TMELT), 
         G * ((z_up - zero_cross_height) * (((TMELT + tw_up) / 2) - TMELT) / TMELT), 
-        layerenergy
+        layer_energy
     )
     return layer_energy
 
@@ -343,27 +343,27 @@ def calc_total_melting_energy_1d(orog, z_prof, tw_2m, tw_prof):
         mask = above_bottom
 
         # Calculate surface energy (only used if BOUR_USE_TW2M = True)
-        sfc_melting_energy = np.where(
-            mask,
-            calc_layer_melting_energy(z_prof[lev], orog, tw_prof[lev], tw_2m),
-            sfc_melting_energy
-        )
+        if mask:
+            sfc_melting_energy = calc_layer_melting_energy_1d(
+                z_prof[lev], 
+                orog, 
+                tw_prof[lev], 
+                tw_2m
+            )
 
         # If BOUR_USE_TW2M = False, set sfc_melting_energy to zero so it's not used
         # and instead calculate the surface wet-bulb temperature based on interpolating
         # between the first above and below ground pressure levels
         if not BOUR_USE_TW2M:
             sfc_melting_energy = 0
-            tw_2m_interp = np.where(
-                (orog > z_prof[lev]) & (orog < z_prof[lev + 1]),
-                tw_prof[lev] + ((orog - z_prof[lev]) / (z_prof[lev + 1] \
-                - z_prof[lev])) * (tw_prof[lev + 1] - tw_prof[lev]), # If True, linearly interpolate
-                tw_prof[lev]
-            ) 
+            if orog > z_prof[lev] and orog < z_prof[lev + 1]:
+                tw_2m_interp = tw_prof[lev] + ((orog - z_prof[lev]) / (z_prof[lev + 1] - z_prof[lev])) * (tw_prof[lev + 1] - tw_prof[lev])
+            else:
+                tw_2m_interp = tw_prof[lev]
 
         # Calculate layer energy; this includes subterranean values *if* 
         # one or both layers is below ground
-        layer_energy = calc_layer_melting_energy(
+        layer_energy = calc_layer_melting_energy_1d(
             z_prof[lev + 1], 
             z_prof[lev], 
             tw_prof[lev + 1], 
@@ -374,19 +374,21 @@ def calc_total_melting_energy_1d(orog, z_prof, tw_2m, tw_prof):
         # with interpolated surface wet-bulb temperature and surface elevatio for the 
         # bottom of the layer
         if not BOUR_USE_TW2M:
-            layer_energy = np.where(
-                (orog > z_prof[lev]) & (orog < z_prof[lev + 1]),
-                calc_layer_melting_energy(z_prof[lev + 1], orog, tw_prof[lev + 1], tw_2m_interp),
-                layer_energy
-            )
-
+            if orog > z_prof[lev] and orog < z_prof[lev + 1]:
+                layer_energy = calc_layer_melting_energy_1d(
+                    z_prof[lev + 1], 
+                    orog, 
+                    tw_prof[lev + 1], 
+                    tw_2m_interp
+                )
+   
         # Modify mask as profile is looped through
         above_top |= above_bottom
         if sfc_melting_energy < 0:
             sfc_melting_energy = 0
 
         # Add layer melting energys and total
-        total_melting_energy += calc_final_melting_energy(
+        total_melting_energy += calc_final_melting_energy_1d(
             layer_energy,
             z_prof[lev],
             z_prof[lev + 1],
