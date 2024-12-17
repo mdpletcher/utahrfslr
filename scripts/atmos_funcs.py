@@ -184,7 +184,7 @@ def calc_total_melting_energy(orog, z_prof_grid, tw_2m, tw_prof_grid):
                 (orog > z_prof_grid[lev, :, :]) & (orog < z_prof_grid[lev + 1, :, :]),
                 tw_prof_grid[lev, :, :] + ((orog - z_prof_grid[lev, :, :]) / (z_prof_grid[lev + 1, :, :] \
                 - z_prof_grid[lev, :, :])) * (tw_prof_grid[lev + 1, :, :] - tw_prof_grid[lev, :, :]), # If True, linearly interpolate
-                tw_prof_grid[lev, :, ;]
+                tw_prof_grid[lev, :, :]
             ) 
 
         # Calculate layer energy; this includes subterranean values *if* 
@@ -320,15 +320,15 @@ def calc_total_melting_energy_1d(orog, z_prof, tw_2m, tw_prof):
     orog : float
         Model elevation (meter)
     z_prof : 1d np.array
-        Geopotential height profiles in grid (meter)
+        Geopotential height profile (meter)
     tw_2m : float
         2-meter wet-bulb temperature (Kelvin)
     tw_prof : 1d np.array
-        Wet-bulb temperature profiles in grid (Kelvin)
+        Wet-bulb temperature profile (Kelvin)
 
     Returns:
     float
-        Total melting energy in atmospheric profile
+        Total melting energy in atmospheric profile (J/kg)
     """
     total_melting_energy, sfc_melting_energy = 0, 0
 
@@ -339,7 +339,7 @@ def calc_total_melting_energy_1d(orog, z_prof, tw_2m, tw_prof):
 
         # Create mask of values below ground
         was_below_ground = not above_top
-        above_bottom = (z_prof_grid[lev] > orog) and was_below_ground
+        above_bottom = (z_prof[lev] > orog) and was_below_ground
         mask = above_bottom
 
         # Calculate surface energy (only used if BOUR_USE_TW2M = True)
