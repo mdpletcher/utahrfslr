@@ -1,7 +1,7 @@
 """
 Michael Pletcher
 Created: 12/13/2024
-Edited: 
+Edited: 12/17/2024
 
 ##### Summary #####
 .py script containg function to calculate various
