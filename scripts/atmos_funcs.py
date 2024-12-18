@@ -419,11 +419,19 @@ def adjust_slr(
 ):
     """
     Adjust snow-to-liquid ratio based on two schemes
-        1) A hybrid approach based on Bourgouin (2000)
-    Adjust snow-to-liquid ratio based on melting scheme developed by 
-    Daniel Cobb for NBM v4.2 (see https://vlab.noaa.gov/documents/6609493/7858320/Cobb+Melting+SLR+Method.pdf
-    for more info). 
-    
+        1) 'BOUR': A hybrid approach based on Bourgouin (2000) and Birk et al. (2021). The global variables
+        ME_TOP and ME_BOTTOM were chosen based on these studies, where ME_TOP = 2 J/kg is consistent 
+        with the "melt energy aloft" used by Bourgouin (2000) and results in a deeper transition
+        zone, and ME_BOTTOM = 9 J/kg for SLR = 0 is based on Bourgouin (2000) Fig. 3 and Eq. 5 
+        and Birk et al. 2021 Fig. 8 and Eq. 9. Assuming a wet-bulb lapse rate of 6.5C/km, ME_BOTTOM = 9 J/kg
+        is very close to 200-m below the 0.5C wet-bulb temperature.
+        Bourgouin (2000): https://journals.ametsoc.org/view/journals/wefo/15/5/1520-0434_2000_015_0583_amtdpt_2_0_co_2.xml
+        Birk et al. (2021): https://journals.ametsoc.org/view/journals/wefo/36/2/WAF-D-20-0118.1.xml
+
+        2) 'WBZ': Adjusts SLR based on the height of the highest wet-bulb 0.5 degC temperature. Linearly
+        interpolates SLR to zero from this height to 200 meters (MELT_DEPTH global) below. 
+        See https://www.weather.gov/media/wrh/online_publications/TAs/TA1901.pdf for more info.
+
     Params:
     initslr : float or 2d np.array / xarray.DataArray
         Input initial snow-to-liquid ratio
