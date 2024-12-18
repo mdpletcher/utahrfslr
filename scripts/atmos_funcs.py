@@ -28,6 +28,10 @@ import numpy as np
 BOUR_USE_TW2M = True
 TMELT = 273.15
 G = 9.81
+ME_TOP = 2
+ME_BOTTOM = 9
+WBZ_PARAM = 0.5
+MELT_DEPTH = 200
 
 
 
@@ -405,4 +409,100 @@ def calc_total_melting_energy_1d(orog, z_prof, tw_2m, tw_prof):
         total_melting_energy = 0
     return total_melting_energy
 
+def adjust_slr(
+    initslr, 
+    method, 
+    ndim,
+    total_melting_energy = None,
+    wbz = None, 
+    orog = None
+):
+    """
+    Adjust snow-to-liquid ratio based on two schemes
+        1) A hybrid approach based on Bourgouin (2000)
+    Adjust snow-to-liquid ratio based on melting scheme developed by 
+    Daniel Cobb for NBM v4.2 (see https://vlab.noaa.gov/documents/6609493/7858320/Cobb+Melting+SLR+Method.pdf
+    for more info). 
+    
+    Params:
+    initslr : float or 2d np.array / xarray.DataArray
+        Input initial snow-to-liquid ratio
+    method : str
+        SLR adjust method. Options are 'BOUR' or 'WBZ'.
+    ndim : int
+        Number of dimensions in the input data. Options are 1 or 2.
+    total_melting_energy (optional) : float or 2d np.array / xarray.DataArray
+        Total melting energy returned from calc_total_melting_energy() (J/kg).
+        Only used when 'BOUR' is the method.
+    wbz (optional) : float or 2d np.array / xarray.DataArray
+        Input height of the highest wet-bulb 0.5 C level (meter AMSL)
+    orog (optional) : float or 2d np.array / xarray.DataArray
+        Station or model elevation (meter)
 
+    Returns:
+    float or 2d np.array
+        Adjusted snow-to-liquid ratio based on either the Bourgouin or WBZ0.5 approaches.
+    """
+    if method == 'WBZ' and wbz is None and orog is None:
+        raise ValueError("The 'wbz' and 'orog' arguments are required when method is set to 'WBZ'.")
+    elif method == 'BOUR' and total_melting_energy is None:
+        raise ValueError("The 'total_melting_energy' argument is required when method is set to 'BOUR'.")
+    assert method in ['WBZ', 'BOUR'], "Invalid method: '%s'. Please use either 'WBZ' or 'BOUR" % method
+    
+    if ndim == 1:
+
+        # Bourgouin (2000) / Birk et al. (2021) hybrid approach
+        if method == 'BOUR':
+            # Conditions used to adjust SLR based on total
+            # melting energy thresholds
+            cond1 = total_melting_energy >= ME_BOTTOM
+            cond2 = ME_TOP <= total_melting_energy < ME_BOTTOM
+            # Adjust SLR based on where the above conditons are met
+            if cond1 or initslr < 0:
+                slr = 0
+            elif cond2:
+                slr = initslr * (1 - ((total_melting_energy - ME_TOP) / (ME_BOTTOM - ME_TOP)))
+            else:
+                slr = initslr
+
+        # Van Cleave (2019) approach
+        elif method == 'WBZ':
+            snowlevel = wbz
+            if snowlevel < 0:
+                snowlevel = 0
+        
+            if orog >= snowlevel:
+                slr = initslr
+            elif orog < snowlevel and orog > snowlevel - MELT_DEPTH:
+                slr = initslr * (orog - (snowlevel - MELT_DEPTH)) / MELT_DEPTH
+            
+            if slr < 0:
+                slr = 0
+
+    elif ndim == 2:
+
+        if method == 'BOUR':
+            # Total melting energy adjustments
+            cond1 = total_melting_energy >= ME_BOTTOM
+            cond2 = (total_melting_energy >= ME_TOP) & (total_melting_energy < ME_BOTTOM)
+            
+            # Adjust SLR
+            slr = xr.where(cond1, 0, initslr)
+            slr = xr.where(cond2, initslr * (1 - ((total_melting_energy - MEtop) / (MEbottom-MEtop))), slr)
+            slr = xr.where(slr < 0, 0, slr)
+
+        elif method == 'WBZ':
+            # Set snow level to height of maximum WB0.5 deg height
+            snowlevel = wbz
+            snowlevel = xr.where(snowlevel < 0, 0, snowlevel)
+
+            # Adjust SLR
+            slr = xr.where(orog >= snowlevel, initslr, 0)
+            slr = xr.where(
+                ((orog < snowlevel) & (orog > (snowlevel - MELT_DEPTH))),
+                (initslr * (orog - (snowlevel - MELT_DEPTH)) / MELT_DEPTH),
+                slr
+            )
+            slr = xr.where(slr < 0, 0, slr)
+
+    return slr
