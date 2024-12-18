@@ -8,8 +8,6 @@ Edited: 12/17/2024
 atmospheric variables
 
 ########### Function List ###########
-    calc_wet_bulb_temp() - Calculate wet-bulb temperature based on 
-    NWS adaptation (based on https://github.com/Unidata/MetPy/issues/409)
     calc_total_melting_energy() - 
     calc_final_layer_melting_energy() - 
     calc_layer_melting_energy() - 
@@ -409,7 +407,7 @@ def calc_total_melting_energy_1d(orog, z_prof, tw_2m, tw_prof):
         total_melting_energy = 0
     return total_melting_energy
 
-def adjust_slr(
+def adjust_melt_slr(
     initslr, 
     method, 
     ndim,
