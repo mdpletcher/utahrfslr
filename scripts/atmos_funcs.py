@@ -21,6 +21,7 @@ atmospheric variables
 
 # Imports
 import numpy as np
+import xarray as xr
 
 # Globals
 BOUR_USE_TW2M = True
@@ -266,7 +267,7 @@ def calc_layer_melting_energy_1d(z_up, z_dn, tw_up, tw_dn):
         elif tw_up > TMELT:  # Crossing from below freezing to above
             layer_energy = G * ((z_up - zero_cross_height) * (((TMELT + tw_up) / 2) - TMELT) / TMELT)
 
-    return max(layer_energy, 0)
+    return layer_energy
 
 def calc_final_melting_energy_1d(
     layer_energy, 
