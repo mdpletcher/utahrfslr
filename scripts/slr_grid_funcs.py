@@ -1,7 +1,7 @@
 """
 Michael Pletcher
 Created: 11/14/2024
-Edited: 
+Edited: 01/27/2025
 
 Acknowledgments: The author thanks Kevin Birk for providing
 code for helping diagnose environments that require adjusting
@@ -21,7 +21,7 @@ precipitation-type work that influenced some of our code.
     calc_needed_vars() - Function to calculate needed
                          variables for SLR prediction
 
-    calc_rf_slr() - Function to calculate SLR using input features
+    calc_slr() - Function to calculate SLR using input features
                     from the calc_gridded_agl_vars() as well as 
                     input features from the input gridded dataset.
 
@@ -45,9 +45,29 @@ import netCDF4 as netcdf
 
 from metpy.units import units
 
+# Globals
+MODEL_TYPE = 'RF' # options are RF or LR
+VERSION_NUM = '1.1' # options are 1.0 and 1.1 
+
 # SLR model components
-model = np.load('../models/rf/UUtah_slr_random_forest_modelv1.pkl', allow_pickle = True)
-model_keys = np.load('../models/rf/UUtah_slr_random_forest_modelv1_keys.npy', allow_pickle = True)
+if MODEL_TYPE == 'RF':
+    model = np.load(
+        '../models/rf/UUtah_rf_slr_modelv%s.pickle' % VERSION_NUM, 
+        allow_pickle = True
+    )
+    model_keys = np.load(
+        '../models/rf/UUtah_rf_slr_modelv%s_keys.npy' % VERSION_NUM, 
+        allow_pickle = True
+    )
+elif MODEL_TYPE == 'LR':
+    model = np.load(
+        '../models/lr/UUtah_lr_slr_modelv%s.pickle' % VERSION_NUM, 
+        allow_pickle = True
+    )
+    model_keys = np.load(
+        '../models/lr/UUtah_lr_slr_modelv%s_keys.npy' % VERSION_NUM, 
+        allow_pickle = True
+    )
 
 
 
@@ -104,7 +124,7 @@ def calc_gridded_agl_vars(ds, agl_levs):
 
     return TAGL, SPDAGL, RHAGL
 
-def calc_rf_slr(
+def calc_slr(
     features,
     model, 
     model_keys,
@@ -140,21 +160,21 @@ def calc_rf_slr(
         else:
             # For other features that are not dictionaries
             # (e.g., lat, lon, elev), add them directly
-            df[key] = pd.Series(value.to_numpy().flatten())
+            df[key] = pd.Series(feature_value.to_numpy().flatten())
 
     # Select only the columns that match model_keys
     df = df.loc[:, model_keys]
     
     # Predict SLR and reshape to HRRR 2d grid using the latitude RF feature
-    df['rf_slr'] = model.predict(df)
-    initslr = df['rf_slr'].to_numpy().reshape(features['lat'].shape)
+    df['slr'] = model.predict(df)
+    initslr = df['slr'].to_numpy().reshape(features['lat'].shape)
 
     return slr
 
 def calc_grids(ds, fpath, fsave = False):
     
     # AGL levels to interpolate to
-    agl_levs = [300, 600, 900, 1200, 1500, 1800, 2100, 2400]
+    agl_levs = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000]
     TAGL, SPDAGL, RHAGL = calc_gridded_agl_vars(ds, agl_levs)
 
     # Random forest input features
@@ -168,8 +188,8 @@ def calc_grids(ds, fpath, fsave = False):
     }
 
     # Add random forest SLR/QSF to Dataset
-    ds['rf_slr'] = calc_rf_slr(features, slr_model, slr_model_keys)
-    ds['rf_qsf'] = ds.rf_slr * ds.rf_qsf
+    ds['slr'] = calc_slr(features, slr_model, slr_model_keys)
+    ds['qsf'] = ds.slr * ds.qsf
 
     if fsave:
         ds.to_netcdf(fpath, engine = 'h5netcdf')
