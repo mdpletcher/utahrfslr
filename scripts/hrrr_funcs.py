@@ -25,7 +25,7 @@ import metpy.calc as mpc
 
 from datetime import datetime, timedelta
 from scipy.spatial import KDTree
-from multiprocessing import Pool
+from multiprocessing import get_context
 
 warnings.filterwarnings('ignore')
 
@@ -111,6 +111,24 @@ SFC_VAR_MAP = {
 
 
 def load_hrrr_var(fdir, init_time, fhr, key):
+    """
+    Load HRRR variable from input .grib2 file based on initialization time,
+    forecast hour, and variable key
+
+    Parameters:
+    fdir : str
+        Input .grib2 file directory
+    init_time : str
+        Initialization time of forecast
+    fhr : str
+        
+
+
+
+    Returns:
+    xarray.DataArray
+
+    """
     f = fdir + init_time.strftime('%Y%m%d%H') + 'F' + str(fhr).zfill(2) + 'hrrr.grib2'
     if key == 'tp':
         #fhr = int(os.path.basename(f)[-12:10])
@@ -268,7 +286,8 @@ def select_grid_points(df, kdtree, sample):
     return selected_grid_points
 
 def extract_profile(file, key, selected_grid_points):
-    ds = load_hrrr_var(file, key)
+    load_hrrr_var(fdir, init_time, fhr, key)
+    ds = load_hrrr_var(file, init_time, fhr, key)
     ds = add_time_dim(ds, fname)
     ds = ds.chunk({'valid_time' : 1}).load()
     profiles = []
@@ -323,7 +342,7 @@ def concat_profiles(init_time, profiles, key, savedir):
             except:
                 raise
 
-def save_var(key, flist, df):
+def save_var(key, flist,selected_grid_points):
     try:
         inits = {}
         for f in flist:
@@ -337,7 +356,7 @@ def save_var(key, flist, df):
                 fhr = int(os.path.basename(f)[-12:-10])
                 # Only use forecast hours between 13 and 24
                 if fhr > 12 and fhr <= 24:
-                    prof = extract_profile(f, df, key)
+                    prof = extract_profile(f, key, selected_grid_points)
                     profs.extend(prof)
                     del prof
             concat_profiles(init_time, profs, key)
@@ -345,10 +364,14 @@ def save_var(key, flist, df):
     except:
         raise
 
-def run_parallel(flist, df, keys):
+def run_parallel(flist, df, keys, sample_file):
+
+    latlon_kdtree = load_sample_hrrr_kdtree(sample_file)
+    selected_grid_points = select_grid_points(df, latlon_kdtree, sample_file)
+
     # Create list of items for parallel processing
     # Number of processes of equal to number of keys
-    items, n_processes = [(key, flist, df) for key in keys], len(keys)
+    items, n_processes = [(key, flist, selected_grid_points) for key in keys], len(keys)
     print(
         'Extracting profiles for these HRRR variables: %s\nRunning in parallel with %s processes' % (keys, n_processes)
     )
@@ -356,12 +379,3 @@ def run_parallel(flist, df, keys):
         p.starmap(save_var, items)
         p.close()
         p.join()
-
-
-
-
-
-
-    
-
-    
