@@ -1,22 +1,12 @@
 """
 Michael Pletcher
 Created: 12/13/2024
-Edited: 12/17/2024
+Edited: 03/05/2025
 
 ##### Summary #####
-.py script containg function to calculate various
-atmospheric variables
-
-########### Function List ###########
-    calc_total_melting_energy() - 
-    calc_final_layer_melting_energy() - 
-    calc_layer_melting_energy() - 
-    calc_total_melting_energy_1d() - 
-    calc_final_layer_melting_energy_1d() - 
-    calc_layer_melting_energy_1d() - 
-
-
-
+.py script containg function to calculate variables
+used for adjusting SLR based on several precipitation
+type methods
 """
 
 # Imports

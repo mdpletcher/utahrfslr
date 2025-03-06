@@ -32,7 +32,9 @@ COBB_TTHRESH = [
     0
 ] 
 
-# Temperature thresholds
+# Coefficients used to predict SLR using 
+# Cobb's polynomial equation
+# First set of coefficients
 C1_COBB = [
     8, 
     12, 
@@ -46,6 +48,7 @@ C1_COBB = [
     6, 
     2
 ]
+# Second set of coefficients
 C2_COBB = [
     -0.0017, 
     3.5034, 
@@ -59,6 +62,7 @@ C2_COBB = [
     -3.7110, 
     0
 ]
+# Third set of coefficients
 C3_COBB = [
     0, 
     1.1684, 
@@ -72,6 +76,7 @@ C3_COBB = [
     1.1888, 
     0
 ]
+# Fourth set of coefficients
 C4_COBB = [
     0.1298, 
     -0.2725, 
@@ -96,6 +101,8 @@ COEFS_COBB = [
 
 
 # Globals for MaxTAloft 
+# Coefficients used to predict SLR in 
+# MaxTAloft's polynomial equation
 COEFS_MAXT = [
     0.0000045, 
     0.0004432, 
@@ -108,7 +115,8 @@ COEFS_MAXT = [
 
 
 # Globals for Roebber ANN method
-# Sigma levels
+# Roebber Sigma levels used to convert from
+# pressure levels to sigma levels
 SIGMA_LEVS = [
     1.0, 
     0.975, 
@@ -125,7 +133,7 @@ SIGMA_LEVS = [
     0.5, 
     0.4
 ]
-# Monthly indexes
+# Roebber Monthly indexes
 MONTH_IDXS = [
     1.0, 
     0.67, 
@@ -140,7 +148,7 @@ MONTH_IDXS = [
     0.33, 
     0.67
 ]
-# Neural network coefficents
+# Roebber neural network coefficents
 # First coefficient list
 C1_ROEBBER = [
     -0.2926, 0.0070, -0.0099, 

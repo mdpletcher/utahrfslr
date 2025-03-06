@@ -1,59 +1,48 @@
 """
 Michael Pletcher, Jim Steenburgh
 Created: 02/07/2025
-Edited:
+Edited: 03/05/2025
 
 ##### Summary #####
-.py script containing functions to postprocess HRRR profile
-data. The original HRRR data was preprocessed from .grib2
-to .csv and .pickle using xarray, pandas, and parallel 
-computing packages.
 
-########## Function List ##########
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+.py script containing functions to postprocess HRRR data and
+gridded snowfall analyses, including the NOHRSC snowfall analysis
+and the Baxter et al. (2005) SLR climatology. The original HRRR 
+data was preprocessed from .grib2 to .csv, .pickle, and .nc using 
+xarray, pandas, and parallel computing packages.
 
 
 
 """
 
-# Imports
 import numpy as np
 import pandas as pd
 import xarray as xr
+import geopandas as gpd
 
+from scipy import ndimage
 from scipy.ndimage import label, find_objects
 from scipy.spatial import KDTree
 from scipy.interplate import griddata
+from shapely.geometry import Point
 
 def fill_small_areas_with_surrounding(data, category, max_area_size):
     """
     Smooths areas with spurious data using surrounding data
 
     Parameters:
-    data (xr.DataArray) : 2-d array containing category numbers for each
-    snow climate
-    category (int) : Value representing snow climate
-    max_area_size: (int) : Maximum number of grid points that is allowed
-    for an area to be filled
+    data : xr.DataArray
+        2-d array containing category numbers for each snow climate
+    category : int
+        Value representing snow climate
+    max_area_size : int
+        Maximum number of grid points that is allowed for an area 
+        to be filled
 
     Returns:
     xr.DataArray
-        2-d array containing modified category numbers for each snow climate
+        2-d array containing modified category numbers for each snow 
+        climate
     """
 
     mask = data == category
@@ -145,13 +134,18 @@ def create_climate_kdtree(climate_data, nohrsc_data, baxter_data):
     data, and Baxter SLR data. The kd-tree is used to assign
     snow climates to each CoCoRAHS site using a lat/lon query
 
-    Parameters:
+    Params:
     climate_data : xr.DataArray
         Processed snow climate categories
     nohrsc_data : xr.DataArray
         Processed NOHRSC mean annual snowfall
     baxter_data : xr.DataArray
         Processed Baxter mean SLR
+
+    Returns:
+    scipy.spatial.KDTree
+        KDTree containing the latitude and longitude values
+        of each snow climate
     """
     climate_df = pd.DataFrame(
         {
@@ -167,7 +161,56 @@ def create_climate_kdtree(climate_data, nohrsc_data, baxter_data):
 
     return kdtree
 
+def create_geodataframe(lats, lons):
 
+    """
+    Create geodataframe for postprocessing NOHRSC
+    snowfall analysis gridded dataset
 
+    Params:
+    lats : np.array
+        2-d numpy array of latitude values
+    lons : np.array
+        2-d numpy array of longitude values
+
+    Returns:
+    class geopandas.GeoDataFrame()
+        geopandas GeoDataFrame containing latitude and longitude values
+        for post-processing NOHRSC data
+    """
+    # Create list of flattened lats and lons
+    points = [Point(lon, lat) for lon, lat in zip(lons.flatten(), lats.flatten())]
+
+    # Create a GeoDataFrame with these points
+    gdf = gpd.GeoDataFrame(geometry = points, crs = "EPSG:4326")
+    return gdf
+
+def get_region_boundary(region_shapefile):
+    """
+    Params:
+    region_shapefile : .shp file
+        Shapefile of specified region
     
+    Returns:
+        The boundary of the specified region
+    """
+    region_boundary = gpd.read_file(region_shapefile)
+    return region_boundary
+
+def mask_points_outside_region(outside_gdf, region_boundary):
+
+    """
+    Params:
+    outside_gdf : geopandas.GeoDataFrame()
+        GeoDataFrame containing lat/lon data of the entire
+        region that encompasses a portion of the desired region
+    region_boundary : geopandas.GeoDataFrame()
+        GeoDataFrame containing lat/lon data of the desired
+        region 
+
+    Returns:
     
+    """
+    inside_gdf = gpd.sjoin(outside_gdf, region_boundary, how = "left", op = "within")
+    mask = inside_gdf.index_right.notnull().values
+    return mask
