@@ -1,41 +1,12 @@
 """
 Michael Pletcher
 Created: 11/14/2024
-Edited: 01/27/2025
-
-Acknowledgments: The author thanks Kevin Birk for providing
-code for helping diagnose environments that require adjusting
-SLR as well as helping troubleshoot Python code. We also 
-acknowledge Bourgouin (2000) and Birk et al. (2021) for their 
-precipitation-type work that influenced some of our code.
+Edited: 04/29/2025
 
 ##### Summary #####
 .py script containing functions used to calculate
-2-d gridded SLR analyses from the HRRR. All 
-
-########## Function List ##########
-    calc_gridded_agl_vars() - Function to interpolate variables
-                              needed to predict SLR from the 
-                              random forest.
-
-    calc_needed_vars() - Function to calculate needed
-                         variables for SLR prediction
-
-    calc_slr() - Function to calculate SLR using input features
-                    from the calc_gridded_agl_vars() as well as 
-                    input features from the input gridded dataset.
-
-    calc_grids() - Function to create 2-d grids from the random
-                   forest SLR
-
-    
-    
-
-
-                              
+2-d gridded SLR analyses from the HRRR. 
 """
-
-
 
 # Imports
 import numpy as np
@@ -46,28 +17,17 @@ import netCDF4 as netcdf
 from metpy.units import units
 
 # Globals
-MODEL_TYPE = 'RF' # options are RF or LR
-VERSION_NUM = '1.1' # options are 1.0 and 1.1 
+MODEL_TYPE = 'rf' # options are rf or lr
+
 
 # SLR model components
-if MODEL_TYPE == 'RF':
-    model = np.load(
-        '../models/rf/UUtah_rf_slr_modelv%s.pickle' % VERSION_NUM, 
-        allow_pickle = True
-    )
-    model_keys = np.load(
-        '../models/rf/UUtah_rf_slr_modelv%s_keys.npy' % VERSION_NUM, 
-        allow_pickle = True
-    )
-elif MODEL_TYPE == 'LR':
-    model = np.load(
-        '../models/lr/UUtah_lr_slr_modelv%s.pickle' % VERSION_NUM, 
-        allow_pickle = True
-    )
-    model_keys = np.load(
-        '../models/lr/UUtah_lr_slr_modelv%s_keys.npy' % VERSION_NUM, 
-        allow_pickle = True
-    )
+modeldir = '../models/'
+model = np.load(
+    modeldir + '%s/%s_slr_model.pkl' % (MODEL_TYPE, MODEL_TYPE), allow_pickle=True
+)
+model = np.load(
+    modeldir + '%s/%s_slr_model_keys.npy' % (MODEL_TYPE, MODEL_TYPE), allow_pickle=True
+)
 
 
 
@@ -160,18 +120,38 @@ def calc_slr(
         else:
             # For other features that are not dictionaries
             # (e.g., lat, lon, elev), add them directly
-            df[key] = pd.Series(feature_value.to_numpy().flatten())
+            df[feature_key] = pd.Series(feature_value.to_numpy().flatten())
 
     # Select only the columns that match model_keys
     df = df.loc[:, model_keys]
     
     # Predict SLR and reshape to HRRR 2d grid using the latitude RF feature
     df['slr'] = model.predict(df)
-    initslr = df['slr'].to_numpy().reshape(features['lat'].shape)
+    slr = df['slr'].to_numpy().reshape(features['lat'].shape)
 
     return slr
 
 def calc_grids(ds, fpath, fsave = False):
+
+    """
+    Calculates variables needed for SLR prediction
+    and then predicts SLR, QSF using gridded data.
+    The variables can then be saved in gridded .nc
+    format.
+
+    Parameters:
+    ds : xarray.Dataset
+        Input dataset containing `gh` (geopotential height), `orog` (surface elevation), 
+        `t` (temperature), `spd` (wind speed), and `r` (relative humidity).
+    fpath : str
+        Path for saving gridded variables
+    fsave : Boolean
+        True if saving file
+    
+    Returns:
+    xarray.Dataset()
+        Processed xr.Dataset containing AGL variables, SLR, and QSF data
+    """
     
     # AGL levels to interpolate to
     agl_levs = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000]

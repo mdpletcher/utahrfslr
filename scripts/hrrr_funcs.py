@@ -13,12 +13,15 @@ HRRR profiles from the HRRR's grid
 import numpy as np
 import pandas as pd
 import xarray as xr
+import re
 import os
 import cfgrib
 import netCDF4 as netcdf
 import warnings
 import metpy.calc as mpc
 import hrrr_config
+import cartopy.crs as ccrs
+import gc
 
 from datetime import datetime, timedelta
 from scipy.spatial import KDTree
@@ -159,7 +162,7 @@ def calc_needed_vars(ds, ptype = False):
 
     return ds
 
-def get_datetime(file):
+def get_datetime(fname):
     """
     Get the datetime from the HRRR file name
 
@@ -173,15 +176,15 @@ def get_datetime(file):
         if the forecast hour is between 13 and 24
     """
 
-    match = re.search(r'(\d{4})(\d{2})(\d{2})(\d{2})F(\d{2})', file)
+    match = re.search(r'(\d{4})(\d{2})(\d{2})(\d{2})F(\d{2})', fname)
     if not match:
-        raise ValueError('Filename %s does not match the expected pattern' % file)
+        raise ValueError('Filename %s does not match the expected pattern' % fname)
     yr, mn, dy, init, fhr = map(int, match.groups())
     # Make sure the forecast hour is between 13 and 24
     if 12 < fhr <= 24:
         return datetime(yr, mn, dy, init) + timedelta(hours = fhr)
 
-def add_time_dim(ds, file):
+def add_time_dim(ds, fname):
     """
     Add the time dimension to a 1-d HRRR profile
 
@@ -197,7 +200,7 @@ def add_time_dim(ds, file):
         corresponding to xtracted datetime from the file name
     """
 
-    valid_dt = get_datetime(file)
+    valid_dt = get_datetime(fname)
     ds = ds.expand_dims(valid_time = [valid_dt])
     return ds
 
@@ -236,7 +239,7 @@ def load_sample_hrrr_kdtree(file):
     print('Transforming grid...')
 
     # Transform HRRR lat/lon grid
-    grid_x, grid_y = sample.isel(x = 0), sample.isel(y = 0)
+    grid_y, grid_x = sample.isel(x = 0), sample.isel(y = 0)
     _, proj_y = transform(grid_y.longitude, grid_y.latitude)
     proj_x, _ = transform(grid_x.longitude, grid_x.latitude)
     sample['x'], sample['y'] = proj_x, proj_y
@@ -292,9 +295,16 @@ def select_grid_points(df, kdtree, sample_file):
 
     return selected_grid_points
 
-def extract_profile(file, key, selected_grid_points):
+def extract_profile(
+    key, 
+    selected_grid_points,
+    init_time,
+    fhr,
+    fdir = None,
+    ds = None
+):
     """
-    Extract HRRR 1-h profile at selected grid points
+    Extract 1-h profile HRRR at selected grid points
 
     Params:
     file : str
@@ -316,8 +326,9 @@ def extract_profile(file, key, selected_grid_points):
         - float: Latitude of the selected HRRR grid point
         - float: Longiude of the selected HRRR grid point
     """
-
-    ds = load_hrrr_var(file, init_time, fhr, key)
+    if fdir is not None:
+        ds = load_hrrr_var(fdir, init_time, fhr, key)
+    fname = init_time.strftime('%Y%m%d%H') + 'F' + str(fhr).zfill(2) + 'hrrr.grib2'
     ds = add_time_dim(ds, fname)
     ds = ds.chunk({'valid_time' : 1}).load()
     profiles = []

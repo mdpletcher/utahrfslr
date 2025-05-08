@@ -86,7 +86,7 @@ def conus_map(
     ax.add_feature(
         cfeature.STATES.with_scale('10m'),
         linewidth = 0.75,
-        edgecolor = 'w',
+        edgecolor = 'k',
         zorder = 2
     )
     ax.add_feature(
