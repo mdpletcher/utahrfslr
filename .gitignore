@@ -1,3 +1,6 @@
 __pycache__
 *.pyc
 **/__pycache__
+data/validation/HRRR_validation_dataset.csv
+data/validation/HRRR_validation_dataset.pd
+._*
