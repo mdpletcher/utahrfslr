@@ -4,3 +4,5 @@ __pycache__
 data/validation/HRRR_validation_dataset.csv
 data/validation/HRRR_validation_dataset.pd
 ._*
+.DS_store
+.ipynb_checkpoints/
