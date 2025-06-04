@@ -19,4 +19,4 @@ Funding for this research was provided by the NOAA Weather Program Office and th
 
 ## Overview of Jupyter Notebook examples
 ```predict_slr.ipynb```: Examples on how to predict SLR with a random forest using 1-d HRRR profiles and the HRRR's 3-d model grid
-```train_model.ipynb```: 
+```train_model.ipynb```: Examples on training/validating linear regression and random forest SLR models
