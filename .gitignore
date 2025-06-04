@@ -1,8 +1,9 @@
 __pycache__
 *.pyc
 **/__pycache__
-data/validation/HRRR_validation_dataset.csv
-data/validation/HRRR_validation_dataset.pd
+data/testing/HRRR_validation_dataset.csv
+data/testing/HRRR_validation_dataset.pd
+data/train-validate/ERA5_train-validate_dataset_raw.pickle
 ._*
 .DS_store
 .ipynb_checkpoints/

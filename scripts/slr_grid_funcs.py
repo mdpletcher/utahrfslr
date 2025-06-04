@@ -1,7 +1,7 @@
 """
 Michael Pletcher
 Created: 11/14/2024
-Edited: 04/29/2025
+Edited: 06/03/2025
 
 ##### Summary #####
 .py script containing functions used to calculate
@@ -179,6 +179,17 @@ def calc_grids(ds, fpath, fsave = False):
     return ds
 
 def calc_needed_vars(ds):
+
+    """
+    Calculates wind speed from u and v components
+    of wind. Also adds pressure levels as a variable
+    to the xarray.Dataset for SLR calculations.
+
+    Returns:
+    xarray.Dataset()
+        Processed xr.Dataset with newly calculated
+        wind speed, with pressure levels added
+    """
 
     # Calculate wind speed
     ds['spd'] = np.sqrt((ds.u ** 2) + (ds.v ** 2))
