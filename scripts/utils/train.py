@@ -157,7 +157,10 @@ def train_model(
     elapsed = end - start
     print('Elapsed time to train and make predictions: %.2f' % elapsed)
 
-    return np.array(test_predictions[:, 0] if model_type == 'lr' else np.array(test_predictions)), np.array(y_test)
+    if model_type == 'lr':
+        return np.array(test_predictions[:, 0]), np.array(y_test), model
+    else:
+        return np.array(test_predictions), np.array(y_test), model
 
 def evaluate_model(y_test, test_predictions):
     """
