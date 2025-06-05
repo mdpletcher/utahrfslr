@@ -14,6 +14,7 @@ Funding for this research was provided by the NOAA Weather Program Office and th
 - `hrrr_config.py`: Configuration file for HRRR scripts. Can be modified for user needs.
 - `nbm_config.py`: Configuration file for NBM SLR methods. These should not be modified.
 - `hrrr_funcs.py`: Functions to read, process, and save HRRR data, specifically extracting individual HRRR profiles
+- `era5_funcs.py`: Functions to read, process, and save extracted ERA5 1-d and 2-d variables.
 - `slr_grid_funcs`: Calculate SLR for a 2-d model grid.
 - `nbm_slr_funcs`: Functions for calculating SLR with NBM methods.
 - `ptype_funcs.py`: Functions for calculating variables for determining precipitation type. We found these methods to produce worse SLR forecasts, so they were not included in the paper results.
