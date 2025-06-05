@@ -21,24 +21,6 @@ Each method is currently configured for NBM v4.2
 If access is available, The COMET Program also contains more info on 
 each SLR method (see https://www.meted.ucar.edu/nwp/NBM40_snow/index.htm).
 
-########### Function List ###########
-    calc_layer_slr() - Calculate layer snow ratio from layer temperature for calc_layer_vars()
-    calc_layer_vars() - Calculate layer variables for calc_cobb_slr()
-    calc_cobb_slr() - Calculate Cobb SLR at single point and the average 
-    vertical velocity and weighting factors in the profile
-    calc_maxtaloft_slr() - Calculate snow-to-liquid ratio by finding maximum 
-    temperature between 2000 ft AGL (609.6 m AGL) and 400 hPa
-    calc_thickness_slr() - Calculate snow-to-liquid ratio by determining
-    850 - 700 mb thickness
-    calc_roebber_components() - Calculate the six PCs needed to calculate
-    snow-to-liquid ratio in calc_roebber_slr()
-    mlp_1_hidden_layer() - Neural network with a single hidden layer
-    mlp_2_hidden_layers() - Neural network with two hidden layers
-    calc_roebber_slr() - Use calc_roebber_components(), mlp_1_hidden_layer(), and mlp_2_hidden_layers()
-    to calculate snow-to-liquid ratio
-    adjust_nbm_slr() - Adjust NBM SLRs based on new NBM v4.2 surface melting scheme developed
-    by Daniel Cobb
-
 
 
 """
