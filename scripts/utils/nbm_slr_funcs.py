@@ -1,7 +1,7 @@
 """
 Michael Pletcher, Jim Steenburgh
 Created: 10/07/2024
-Edited: 12/11/2024
+Edited: 06/12/2024
 
 Acknowledgments: The author thanks Robert James of the Meteorological
 Development Lab (MDL) for providing Fortran code for the Cobb, MaxTAloft,
@@ -28,12 +28,14 @@ each SLR method (see https://www.meted.ucar.edu/nwp/NBM40_snow/index.htm).
 # Imports
 import pandas as pd
 import numpy as np
-import nbm_config
-import roebber_ens_members
+import sys
 
 from math import isnan
 from glob import glob
 from datetime import datetime
+
+sys.path.append('../configs/')
+import nbm_config, roebber_ens_members
 
 # Create global for weights and biases from each
 # member of the 10-member ANN ensemble

@@ -4,6 +4,7 @@ __pycache__
 data/testing/HRRR_validation_dataset.csv
 data/testing/HRRR_validation_dataset.pd
 data/train-validate/ERA5_train-validate_dataset_raw.pickle
+scripts/utils/roebber_nn_funcs.py
 ._*
 .DS_store
 .ipynb_checkpoints/

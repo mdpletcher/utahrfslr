@@ -15,6 +15,7 @@ import pandas as pd
 import xarray as xr
 import re
 import os
+import sys
 import cfgrib
 import netCDF4 as netcdf
 import warnings
@@ -26,6 +27,9 @@ import gc
 from datetime import datetime, timedelta
 from scipy.spatial import KDTree
 from multiprocessing import get_context
+
+sys.path.append('../configs/')
+import hrrr_config
 
 warnings.filterwarnings('ignore')
 

@@ -23,10 +23,10 @@ MODEL_TYPE = 'rf' # options are rf or lr
 # SLR model components
 modeldir = '../models/'
 model = np.load(
-    modeldir + '%s/%s_slr_model.pkl' % (MODEL_TYPE, MODEL_TYPE), allow_pickle=True
+    modeldir + '%s/%s_slr_model.pkl' % (MODEL_TYPE, MODEL_TYPE), allow_pickle = True
 )
-model = np.load(
-    modeldir + '%s/%s_slr_model_keys.npy' % (MODEL_TYPE, MODEL_TYPE), allow_pickle=True
+model_keys = np.load(
+    modeldir + '%s/%s_slr_model_keys.npy' % (MODEL_TYPE, MODEL_TYPE), allow_pickle = True
 )
 
 
