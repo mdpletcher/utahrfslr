@@ -21,6 +21,11 @@ Funding for this research was provided by the NOAA Weather Program Office and th
 - `postprocess.py`: Functions for postprocessing gridded model data. Most compatible with HRRR data.
 - `train.py`: Train and evaluate ML models
 - `roebber_ens_members.py`: Weights and biases used for Roebber SLR method
+- `pair_era5_profiles.py`: Pair CoCoRaHS SLR obs with ERA5 data for training, validation, and testing of RF
+- `model_utils.py`: Tools for calculating variables needed for SLR prediction
+
+## Shell scripts
+- `download_cocorahs.sh`: Script used to download CoCoRaHS data used in this study
 
 ## Overview of Jupyter Notebook examples
 - `predict_slr.ipynb`: Examples on how to predict SLR with a random forest using 1-d HRRR profiles and the HRRR's 3-d model grid
