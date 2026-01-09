@@ -1,7 +1,7 @@
 # Machine learning models for predicting snow-to-liquid ratio
 
 ## Intro
-This repository is the code associated with the WAF manuscript titled "Snow-to-liquid ratio prediction over the contiguous United States using machine learning" written by Pletcher, M.D., P. G. Veals, R. J. Chase, S. Hilberg, N. Newman, A. A. Rosenow, and W. James Steenburgh, _in review_.
+This repository is the code associated with the WAF manuscript titled "Snow-to-liquid ratio prediction over the contiguous United States using machine learning" written by Pletcher, M.D., P. G. Veals, R. J. Chase, S. Hilberg, N. Newman, A. A. Rosenow, and W. James Steenburgh, _in press_.
 
 ## About
 Snow-to-liquid ratio (SLR), or the ratio of freshly fallen snow to liquid precipitation equivalent, is used operationally to forecast snowfall amount and diagnose avalanche hazards during winter storms. Often, current operational SLR prediction methods focus on specific locations or regions, which may introduce bias when applied to other areas. Thus, we have developed several machine learning (ML) models (primarily using random forests) to predict SLR more accurately across the contiguous United States (CONUS) using a CONUS-wide training dataset [[see the Pletcher et al. (2024) repo for our first efforts in this area]](https://github.com/mdpletcher/SLR_random_forest_pletcher). These ML models can be applied to any weather modeling system and outperform existing SLR prediction methods used by the National Weather Service (NWS). 
